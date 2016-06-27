@@ -13,6 +13,7 @@ type alias Task =
     { id : Int
     , description : String
     , isDone : Bool
+    , isEditing : Bool
     }
 
 
@@ -32,7 +33,7 @@ emptyModel =
 
 newTask : Int -> String -> Task
 newTask id description =
-    { id = id, description = description, isDone = False }
+    { id = id, description = description, isDone = False, isEditing = False }
 
 
 type Msg
@@ -42,24 +43,34 @@ type Msg
     | Add
     | Done Int
     | HideDone
+    | ToggleEditing Int
+    | TaskChanged ( Int, String )
 
 
 update : Msg -> Model -> Model
 update msg model =
     let
-        markDone : List Task -> Int -> List Task
-        markDone tasks id =
+        updateTask : (Task -> Task) -> List Task -> Int -> List Task
+        updateTask update tasks id =
             let
                 ( start, end ) =
-                    tasks
-                        |> List.Extra.break (\t -> t.id == id)
+                    tasks |> List.Extra.break (\t -> t.id == id)
             in
                 case end of
                     [] ->
                         start
 
                     t :: rest ->
-                        start ++ ({ t | isDone = not t.isDone } :: rest)
+                        start ++ ((update t) :: rest)
+
+        markDone t =
+            { t | isDone = not t.isDone }
+
+        toggleEditing t =
+            { t | isEditing = not t.isEditing  }
+
+        changeDescription description t =
+            { t | description = description }
 
         addNewTask model =
             case model.newTask of
@@ -87,10 +98,18 @@ update msg model =
                 { model | search = s }
 
             Done id ->
-                { model | tasks = markDone model.tasks id }
+                { model | tasks = updateTask markDone model.tasks id }
+
+            ToggleEditing id ->
+                { model | tasks = updateTask toggleEditing model.tasks id }
 
             HideDone ->
                 { model | hideDone = not model.hideDone }
+
+            TaskChanged ( id, s ) ->
+                { model | tasks = updateTask (changeDescription s) model.tasks id }
+
+            
 
 
 view : Model -> Html Msg
@@ -118,7 +137,7 @@ view model =
                 [ input
                     [ type' "checkbox"
                     , checked hideDone
-                    , onClick (HideDone)
+                    , onClick HideDone
                     ]
                     []
                 , text "hide done"
@@ -130,7 +149,7 @@ view model =
                     if (String.isEmpty search) then
                         tasks
                     else
-                        tasks |> List.filter (\t -> t.description |> String.contains search)
+                        tasks |> List.filter (\t -> t.isEditing || (t.description |> String.contains search))
 
                 doneFilter tasks =
                     if (hideDone) then
@@ -150,15 +169,27 @@ view model =
 
         taskView : Task -> Html Msg
         taskView task =
-            li []
-                [ input
-                    [ type' "checkbox"
-                    , checked task.isDone
-                    , onClick (Done task.id)
+            let
+                descriptionView =
+                    if (task.isEditing) then
+                        input
+                            [ value task.description
+                            , onInput (\s -> TaskChanged ( task.id, s ))
+                            , onEnter NoOp (ToggleEditing task.id)
+                            ]
+                            []
+                    else
+                        label [ onDoubleClick (ToggleEditing task.id) ] [ text task.description ]
+            in
+                li []
+                    [ input
+                        [ type' "checkbox"
+                        , checked task.isDone
+                        , onClick (Done task.id)
+                        ]
+                        []
+                    , descriptionView
                     ]
-                    []
-                , label [] [ text task.description ]
-                ]
 
         onEnter fail success =
             let
