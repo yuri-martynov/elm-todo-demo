@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Html exposing (..)
-import Html.App exposing (..)
+import Html.App as Html
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Json.Decode as Json
@@ -13,7 +13,7 @@ type alias Task =
     { id : Int
     , description : String
     , isDone : Bool
-    , isEditing : Bool
+    , newDescription : Maybe String
     }
 
 
@@ -33,7 +33,7 @@ emptyModel =
 
 newTask : Int -> String -> Task
 newTask id description =
-    { id = id, description = description, isDone = False, isEditing = False }
+    { id = id, description = description, isDone = False, newDescription = Nothing }
 
 
 type Msg
@@ -43,18 +43,20 @@ type Msg
     | Add
     | Done Int
     | HideDone
-    | ToggleEditing Int
+    | StartEditing Int
+    | FinishEditing Int
     | TaskChanged ( Int, String )
+    | CancelEditing Int
 
 
-update : Msg -> Model -> Model
-update msg model =
+update' : Msg -> Model -> Model
+update' msg model =
     let
-        updateTask : (Task -> Task) -> List Task -> Int -> List Task
-        updateTask update tasks id =
+        updateTask' : List a -> (a -> Bool) -> (a -> a) -> List a
+        updateTask' tasks find update =
             let
                 ( start, end ) =
-                    tasks |> List.Extra.break (\t -> t.id == id)
+                    tasks |> List.Extra.break find
             in
                 case end of
                     [] ->
@@ -63,14 +65,31 @@ update msg model =
                     t :: rest ->
                         start ++ ((update t) :: rest)
 
+        updateTask id =
+            updateTask' model.tasks (\t -> t.id == id)
+
         markDone t =
             { t | isDone = not t.isDone }
 
-        toggleEditing t =
-            { t | isEditing = not t.isEditing  }
+        startEditing t =
+            { t | newDescription = Just t.description }
 
-        changeDescription description t =
-            { t | description = description }
+        finishEditing t =
+            case t.newDescription of
+                Nothing ->
+                    t
+
+                Just "" ->
+                    t
+
+                Just s ->
+                    { t | description = s, newDescription = Nothing }
+
+        cancelEditing t =
+            { t | newDescription = Nothing }
+
+        changeDescription newDescription t =
+            { t | newDescription = Just newDescription }
 
         addNewTask model =
             case model.newTask of
@@ -98,18 +117,27 @@ update msg model =
                 { model | search = s }
 
             Done id ->
-                { model | tasks = updateTask markDone model.tasks id }
+                { model | tasks = updateTask id markDone }
 
-            ToggleEditing id ->
-                { model | tasks = updateTask toggleEditing model.tasks id }
+            StartEditing id ->
+                { model | tasks = updateTask id startEditing }
+
+            FinishEditing id ->
+                { model | tasks = updateTask id finishEditing }
 
             HideDone ->
                 { model | hideDone = not model.hideDone }
 
             TaskChanged ( id, s ) ->
-                { model | tasks = updateTask (changeDescription s) model.tasks id }
+                { model | tasks = updateTask id (changeDescription s) }
 
-            
+            CancelEditing id ->
+                { model | tasks = updateTask id cancelEditing }
+
+
+update : Msg -> Model -> ( Model, Cmd a )
+update msg model =
+    (update' msg model) ! []
 
 
 view : Model -> Html Msg
@@ -120,7 +148,7 @@ view model =
                 [ placeholder "Enter new task"
                 , value newTask
                 , onInput UpdateNewTask
-                , onEnter NoOp Add
+                , onEnter Add
                 ]
                 []
 
@@ -149,7 +177,7 @@ view model =
                     if (String.isEmpty search) then
                         tasks
                     else
-                        tasks |> List.filter (\t -> t.isEditing || (t.description |> String.contains search))
+                        tasks |> List.filter (\t -> t.description |> String.contains search)
 
                 doneFilter tasks =
                     if (hideDone) then
@@ -171,15 +199,17 @@ view model =
         taskView task =
             let
                 descriptionView =
-                    if (task.isEditing) then
-                        input
-                            [ value task.description
-                            , onInput (\s -> TaskChanged ( task.id, s ))
-                            , onEnter NoOp (ToggleEditing task.id)
-                            ]
-                            []
-                    else
-                        label [ onDoubleClick (ToggleEditing task.id) ] [ text task.description ]
+                    case task.newDescription of
+                        Nothing ->
+                            label [ onDoubleClick (StartEditing task.id) ] [ text task.description ]
+
+                        Just s ->
+                            input
+                                [ value s
+                                , onInput (\s -> TaskChanged ( task.id, s ))
+                                , onKeyUp NoOp [ ( 13, (FinishEditing task.id) ), ( 27, (CancelEditing task.id) ) ]
+                                ]
+                                []
             in
                 li []
                     [ input
@@ -191,17 +221,23 @@ view model =
                     , descriptionView
                     ]
 
-        onEnter fail success =
+        onKeyUp fail options =
             let
-                tagger code =
-                    case code of
-                        13 ->
-                            success
-
-                        _ ->
+                tagger options code =
+                    case options of
+                        [] ->
                             fail
+
+                        ( c, msg ) :: rest ->
+                            if (c == code) then
+                                msg
+                            else
+                                tagger rest code
             in
-                on "keyup" (Json.map tagger keyCode)
+                on "keyup" (Json.map (tagger options) keyCode)
+
+        onEnter msg =
+            onKeyUp NoOp [ ( 13, msg ) ]
     in
         div []
             [ newTaskView model.newTask
@@ -211,5 +247,9 @@ view model =
             ]
 
 
+init =
+    emptyModel ! []
+
+
 main =
-    beginnerProgram { model = emptyModel, view = view, update = update }
+    Html.program { init = init, update = update, view = view, subscriptions = \_ -> Sub.none }
