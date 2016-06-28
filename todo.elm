@@ -207,7 +207,7 @@ view model =
                             input
                                 [ value s
                                 , onInput (\s -> TaskChanged ( task.id, s ))
-                                , onKeyUp NoOp [ ( 13, (FinishEditing task.id) ), ( 27, (CancelEditing task.id) ) ]
+                                , onEnterOrEscape (FinishEditing task.id) (CancelEditing task.id) 
                                 ]
                                 []
             in
@@ -238,6 +238,9 @@ view model =
 
         onEnter msg =
             onKeyUp NoOp [ ( 13, msg ) ]
+
+        onEnterOrEscape enter escape =
+            onKeyUp NoOp [(13, enter), (27, escape)]
     in
         div []
             [ newTaskView model.newTask
