@@ -1,5 +1,7 @@
 module Main exposing (..)
 
+import TodoItem
+
 import Html exposing (..)
 import Html.App as Html
 import Html.Events exposing (..)
@@ -9,12 +11,10 @@ import String
 import List.Extra
 
 
-type alias Task =
-    { id : Int
-    , description : String
-    , isDone : Bool
-    , newDescription : Maybe String
-    }
+type alias WithId baseType idType =  
+    { baseType | id : idType }
+
+type alias TodoItemWithId = WithId TodoItem.Model Int
 
 
 type alias Model =
@@ -22,7 +22,7 @@ type alias Model =
     , newTask : Maybe String
     , search : Maybe String
     , hideDone : Bool
-    , tasks : List Task
+    , tasks : List TodoItemWithId
     }
 
 
@@ -31,7 +31,7 @@ emptyModel =
     { nextId = 1, newTask = Nothing, tasks = [], search = Nothing, hideDone = False }
 
 
-newTask : Int -> String -> Task
+newTask : Int -> String -> TodoItemWithId
 newTask id description =
     { id = id, description = description, isDone = False, newDescription = Nothing }
 
@@ -45,7 +45,7 @@ type Msg
     | HideDone
     | StartEditing Int
     | FinishEditing Int
-    | TaskChanged ( Int, String )
+    | TaskChanged Int String 
     | CancelEditing Int
     | Delete Int
     | DeleteCompleted
@@ -133,7 +133,7 @@ update' msg model =
             HideDone ->
                 { model | hideDone = not model.hideDone }
 
-            TaskChanged ( id, s ) ->
+            TaskChanged id s  ->
                 { model | tasks = updateTask id (changeDescription s) }
 
             CancelEditing id ->
@@ -213,7 +213,7 @@ view model =
             in
                 ul [] tasksView
 
-        taskView : Task -> Html Msg
+        taskView : TodoItemWithId -> Html Msg
         taskView task =
             let
                 descriptionView =
@@ -224,7 +224,7 @@ view model =
                         Just s ->
                             input
                                 [ value s
-                                , onInput (\s -> TaskChanged ( task.id, s ))
+                                , onInput (\s -> TaskChanged task.id s)
                                 , onEnterOrEscape (FinishEditing task.id) (CancelEditing task.id) 
                                 ]
                                 []
