@@ -19,8 +19,8 @@ type alias Task =
 
 type alias Model =
     { nextId : Int
-    , newTask : String
-    , search : String
+    , newTask : Maybe String
+    , search : Maybe String
     , hideDone : Bool
     , tasks : List Task
     }
@@ -28,7 +28,7 @@ type alias Model =
 
 emptyModel : Model
 emptyModel =
-    { nextId = 1, newTask = "", tasks = [], search = "", hideDone = False }
+    { nextId = 1, newTask = Nothing, tasks = [], search = Nothing, hideDone = False }
 
 
 newTask : Int -> String -> Task
@@ -47,6 +47,8 @@ type Msg
     | FinishEditing Int
     | TaskChanged ( Int, String )
     | CancelEditing Int
+    | Delete Int
+    | DeleteCompleted
 
 
 update' : Msg -> Model -> Model
@@ -76,7 +78,7 @@ update' msg model =
 
         finishEditing t =
             case t.newDescription of
-                Nothing ->
+                Nothing  ->
                     t
 
                 Just "" ->
@@ -88,19 +90,18 @@ update' msg model =
         cancelEditing t =
             { t | newDescription = Nothing }
 
-        changeDescription newDescription t =
-            { t | newDescription = Just newDescription }
+        changeDescription s t =
+            { t | newDescription = Just s }
+                
 
         addNewTask model =
             case model.newTask of
-                "" ->
-                    model
-
-                _ ->
+                Nothing -> model
+                Just s ->
                     { model
                         | nextId = model.nextId + 1
-                        , newTask = ""
-                        , tasks = (newTask model.nextId model.newTask) :: model.tasks
+                        , newTask = Nothing
+                        , tasks = (newTask model.nextId s) :: model.tasks
                     }
     in
         case msg of
@@ -108,13 +109,17 @@ update' msg model =
                 model
 
             UpdateNewTask s ->
-                { model | newTask = s }
+                case s of
+                    "" -> { model | newTask = Nothing }
+                    _ -> { model | newTask = Just s }
 
             Add ->
                 addNewTask model
 
             UpdateSearch s ->
-                { model | search = s }
+                case s of
+                    "" -> { model | search = Nothing }
+                    _ ->  { model | search = Just s }
 
             Done id ->
                 { model | tasks = updateTask id markDone }
@@ -134,6 +139,12 @@ update' msg model =
             CancelEditing id ->
                 { model | tasks = updateTask id cancelEditing }
 
+            Delete id ->
+                { model | tasks = model.tasks |> List.filter (\t -> t.id /= id)}
+
+            DeleteCompleted ->
+                { model | tasks = model.tasks |> List.filter (.isDone >> not)}
+
 
 update : Msg -> Model -> ( Model, Cmd a )
 update msg model =
@@ -143,10 +154,11 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
+        toStr = Maybe.withDefault ""
         newTaskView newTask =
             input
                 [ placeholder "Enter new task"
-                , value newTask
+                , value (newTask |> toStr)
                 , onInput UpdateNewTask
                 , onEnter Add
                 ]
@@ -155,29 +167,35 @@ view model =
         searchView search =
             input
                 [ placeholder "search"
-                , value search
+                , value (search |> toStr)
                 , onInput UpdateSearch
                 ]
                 []
 
-        hideDoneView hideDone =
-            div []
-                [ input
-                    [ type' "checkbox"
-                    , checked hideDone
-                    , onClick HideDone
+        hideDoneView hideDone tasks =
+            if hasDone tasks then
+                div []
+                    [ input
+                        [ type' "checkbox"
+                        , checked hideDone
+                        , onClick HideDone
+                        ]
+                        []
+                    , text "hide done"
+                    , button
+                        [ onClick DeleteCompleted ]
+                        [ text "Delete completed"]
                     ]
-                    []
-                , text "hide done"
-                ]
+            else
+                div [] []
 
         taskListView tasks search hideDone =
             let
                 searchFilter tasks =
-                    if (String.isEmpty search) then
-                        tasks
-                    else
-                        tasks |> List.filter (\t -> t.description |> String.contains search)
+                    case search of
+                        Nothing -> tasks
+                        Just s ->
+                            tasks |> List.filter (\t -> t.description |> String.contains s)
 
                 doneFilter tasks =
                     if (hideDone) then
@@ -210,6 +228,11 @@ view model =
                                 , onEnterOrEscape (FinishEditing task.id) (CancelEditing task.id) 
                                 ]
                                 []
+
+                deleteButtonView = 
+                    button 
+                        [ onClick (Delete task.id) ] 
+                        [ text "x"]
             in
                 li []
                     [ input
@@ -219,8 +242,31 @@ view model =
                         ]
                         []
                     , descriptionView
+                    , deleteButtonView
                     ]
 
+        summaryView tasks = 
+            if tasks == [] then
+                div [] [ text "Welcome. Add a task to start" ]
+            else
+                let 
+                    notDone = tasks |> List.filter (.isDone >> not) |> List.length
+                in
+                    div [] [ text (pluralizeItems notDone ++ " remainig") ]
+
+        pluralize (singular, plural) number =
+            let 
+                word = 
+                    if (number == 1) then singular
+                    else plural
+                numberStr = toString number
+            in 
+                numberStr ++ " " ++ word
+
+        pluralizeItems = pluralize ("item", "items")
+
+        hasDone tasks = tasks |> List.any (.isDone)
+        
         onKeyUp fail options =
             let
                 tagger options code =
@@ -245,8 +291,9 @@ view model =
         div []
             [ newTaskView model.newTask
             , searchView model.search
-            , hideDoneView model.hideDone
             , taskListView model.tasks model.search model.hideDone
+            , summaryView model.tasks
+            , hideDoneView model.hideDone model.tasks
             ]
 
 
