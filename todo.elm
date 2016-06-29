@@ -1,20 +1,18 @@
 module Main exposing (..)
 
 import TodoItem
+import Events exposing (..)
 
 import Html exposing (..)
-import Html.App as Html
+import Html.App exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Json.Decode as Json
 import String
-import List.Extra
 
-
-type alias WithId baseType idType =  
-    { baseType | id : idType }
-
-type alias TodoItemWithId = WithId TodoItem.Model Int
+type alias TodoItemWithId = 
+    { id: Int
+    , model: TodoItem.Model
+    }
 
 
 type alias Model =
@@ -25,7 +23,6 @@ type alias Model =
     , tasks : List TodoItemWithId
     }
 
-
 emptyModel : Model
 emptyModel =
     { nextId = 1, newTask = Nothing, tasks = [], search = Nothing, hideDone = False }
@@ -33,7 +30,7 @@ emptyModel =
 
 newTask : Int -> String -> TodoItemWithId
 newTask id description =
-    { id = id, description = description, isDone = False, newDescription = Nothing }
+    { id = id, model = {description = description, isDone = False, newDescription = Nothing} }
 
 
 type Msg
@@ -41,59 +38,15 @@ type Msg
     | UpdateNewTask String
     | UpdateSearch String
     | Add
-    | Done Int
     | HideDone
-    | StartEditing Int
-    | FinishEditing Int
-    | TaskChanged Int String 
-    | CancelEditing Int
     | Delete Int
     | DeleteCompleted
+    | TodoItemMsg Int TodoItem.Msg
 
 
 update' : Msg -> Model -> Model
 update' msg model =
     let
-        updateTask' : List a -> (a -> Bool) -> (a -> a) -> List a
-        updateTask' tasks find update =
-            let
-                ( start, end ) =
-                    tasks |> List.Extra.break find
-            in
-                case end of
-                    [] ->
-                        start
-
-                    t :: rest ->
-                        start ++ ((update t) :: rest)
-
-        updateTask id =
-            updateTask' model.tasks (\t -> t.id == id)
-
-        markDone t =
-            { t | isDone = not t.isDone }
-
-        startEditing t =
-            { t | newDescription = Just t.description }
-
-        finishEditing t =
-            case t.newDescription of
-                Nothing  ->
-                    t
-
-                Just "" ->
-                    t
-
-                Just s ->
-                    { t | description = s, newDescription = Nothing }
-
-        cancelEditing t =
-            { t | newDescription = Nothing }
-
-        changeDescription s t =
-            { t | newDescription = Just s }
-                
-
         addNewTask model =
             case model.newTask of
                 Nothing -> model
@@ -103,6 +56,15 @@ update' msg model =
                         , newTask = Nothing
                         , tasks = (newTask model.nextId s) :: model.tasks
                     }
+
+        taskMsg id msg tasks =
+        let
+            updateTask t = 
+                if (t.id == id) then {t | model = (t.model |> TodoItem.update msg)}
+                else t
+        in
+            tasks |> List.map updateTask
+
     in
         case msg of
             NoOp ->
@@ -121,35 +83,21 @@ update' msg model =
                     "" -> { model | search = Nothing }
                     _ ->  { model | search = Just s }
 
-            Done id ->
-                { model | tasks = updateTask id markDone }
-
-            StartEditing id ->
-                { model | tasks = updateTask id startEditing }
-
-            FinishEditing id ->
-                { model | tasks = updateTask id finishEditing }
-
             HideDone ->
                 { model | hideDone = not model.hideDone }
-
-            TaskChanged id s  ->
-                { model | tasks = updateTask id (changeDescription s) }
-
-            CancelEditing id ->
-                { model | tasks = updateTask id cancelEditing }
 
             Delete id ->
                 { model | tasks = model.tasks |> List.filter (\t -> t.id /= id)}
 
             DeleteCompleted ->
-                { model | tasks = model.tasks |> List.filter (.isDone >> not)}
+                { model | tasks = model.tasks |> List.filter (.model >> .isDone >> not)}
 
+            TodoItemMsg id msg ->
+                {model | tasks = model.tasks |> taskMsg id msg}
 
 update : Msg -> Model -> ( Model, Cmd a )
 update msg model =
     (update' msg model) ! []
-
 
 view : Model -> Html Msg
 view model =
@@ -160,7 +108,7 @@ view model =
                 [ placeholder "Enter new task"
                 , value (newTask |> toStr)
                 , onInput UpdateNewTask
-                , onEnter Add
+                , onEnter NoOp Add
                 ]
                 []
 
@@ -195,11 +143,11 @@ view model =
                     case search of
                         Nothing -> tasks
                         Just s ->
-                            tasks |> List.filter (\t -> t.description |> String.contains s)
+                            tasks |> List.filter (\t -> t.model.description |> String.contains s)
 
                 doneFilter tasks =
                     if (hideDone) then
-                        tasks |> List.filter (\t -> not t.isDone)
+                        tasks |> List.filter (\t -> t.model.isDone == False)
                     else
                         tasks
 
@@ -214,34 +162,15 @@ view model =
                 ul [] tasksView
 
         taskView : TodoItemWithId -> Html Msg
-        taskView task =
+        taskView {id, model} =
             let
-                descriptionView =
-                    case task.newDescription of
-                        Nothing ->
-                            label [ onDoubleClick (StartEditing task.id) ] [ text task.description ]
-
-                        Just s ->
-                            input
-                                [ value s
-                                , onInput (\s -> TaskChanged task.id s)
-                                , onEnterOrEscape (FinishEditing task.id) (CancelEditing task.id) 
-                                ]
-                                []
-
                 deleteButtonView = 
                     button 
-                        [ onClick (Delete task.id) ] 
+                        [ onClick (Delete id) ] 
                         [ text "x"]
             in
                 li []
-                    [ input
-                        [ type' "checkbox"
-                        , checked task.isDone
-                        , onClick (Done task.id)
-                        ]
-                        []
-                    , descriptionView
+                    [ map (TodoItemMsg id) (TodoItem.view model)
                     , deleteButtonView
                     ]
 
@@ -265,34 +194,14 @@ view model =
 
         pluralizeItems = pluralize ("item", "items")
 
-        hasDone tasks = tasks |> List.any (.isDone)
+        hasDone tasks = tasks |> List.any (.model >> .isDone)
         
-        onKeyUp fail options =
-            let
-                tagger options code =
-                    case options of
-                        [] ->
-                            fail
-
-                        ( c, msg ) :: rest ->
-                            if (c == code) then
-                                msg
-                            else
-                                tagger rest code
-            in
-                on "keyup" (Json.map (tagger options) keyCode)
-
-        onEnter msg =
-            onKeyUp NoOp [ ( 13, msg ) ]
-
-        onEnterOrEscape enter escape =
-            onKeyUp NoOp [(13, enter), (27, escape)]
     in
         div []
             [ newTaskView model.newTask
             , searchView model.search
             , taskListView model.tasks model.search model.hideDone
-            , summaryView model.tasks
+            , summaryView (model.tasks |> List.map (.model))
             , hideDoneView model.hideDone model.tasks
             ]
 
@@ -302,4 +211,4 @@ init =
 
 
 main =
-    Html.program { init = init, update = update, view = view, subscriptions = \_ -> Sub.none }
+    program { init = init, update = update, view = view, subscriptions = \_ -> Sub.none }
