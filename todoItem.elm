@@ -63,7 +63,7 @@ view model =
                     input
                         [ value s
                         , onInput TaskChanged
-                        , onEnterOrEscape NoOp FinishEditing CancelEditing
+                        , onEnterOrEscape FinishEditing CancelEditing
                         ]
                         []
 

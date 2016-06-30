@@ -108,7 +108,7 @@ view model =
                 [ placeholder "Enter new task"
                 , value (newTask |> toStr)
                 , onInput UpdateNewTask
-                , onEnter NoOp Add
+                , onEnter Add
                 ]
                 []
 

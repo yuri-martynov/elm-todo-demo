@@ -1,15 +1,16 @@
 module Events exposing (..)
 
 import Html.Events exposing (..)
-import Json.Decode as Json
+import Json.Decode exposing (..)
 
 
-onKeyUp fail options =
+onKeyUp options =
     let
+        codes = options |> List.map fst
         tagger options code =
             case options of
                 [] ->
-                    fail
+                    Debug.crash "key code should exists"
 
                 ( c, msg ) :: rest ->
                     if (c == code) then
@@ -17,12 +18,23 @@ onKeyUp fail options =
                     else
                         tagger rest code
     in
-        on "keyup" (Json.map (tagger options) keyCode)
+        on "keyup" (map (tagger options) (keyCodes codes))
 
 
-onEnter fail msg =
-    onKeyUp fail [ ( 13, msg ) ]
+onEnter msg =
+    onKeyUp [ ( 13, msg ) ]
 
 
-onEnterOrEscape fail enter escape =
-    onKeyUp fail [ ( 13, enter ), ( 27, escape ) ]
+onEnterOrEscape enter escape =
+    onKeyUp [ ( 13, enter ), ( 27, escape ) ]
+
+keyCodes codes = 
+    let
+        f codesToCheck code =
+            case codesToCheck of
+                [] -> Err "key code not found"
+                c :: rest ->
+                    if (c == code) then Ok code
+                    else f rest code
+    in
+        customDecoder keyCode (f codes)
