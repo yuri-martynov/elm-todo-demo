@@ -1,7 +1,8 @@
 module Main exposing (..)
 
 import TodoItem
-import Events exposing (..)
+import Search
+import TodoEntry
 import Html exposing (..)
 import Html.App exposing (..)
 import Html.Events exposing (..)
@@ -17,8 +18,8 @@ type alias TodoItemWithId =
 
 type alias Model =
     { nextId : Int
-    , newTask : Maybe String
-    , search : Maybe String
+    , newTask : TodoEntry.Model
+    , search : Search.Model
     , hideDone : Bool
     , tasks : List TodoItemWithId
     }
@@ -26,7 +27,12 @@ type alias Model =
 
 emptyModel : Model
 emptyModel =
-    { nextId = 1, newTask = Nothing, tasks = [], search = Nothing, hideDone = False }
+    { nextId = 1
+    , newTask = Nothing
+    , tasks = []
+    , search = Nothing
+    , hideDone = False
+    }
 
 
 newTask : Int -> String -> TodoItemWithId
@@ -35,14 +41,12 @@ newTask id description =
 
 
 type Msg
-    = NoOp
-    | UpdateNewTask String
-    | UpdateSearch String
-    | Add
+    = TodoEntryMsg TodoEntry.Msg
     | HideDone
     | Delete Int
     | DeleteCompleted
     | TodoItemMsg Int TodoItem.Msg
+    | SearchMsg Search.Msg
 
 
 update' : Msg -> Model -> Model
@@ -60,6 +64,10 @@ update' msg model =
                         , tasks = (newTask model.nextId s) :: model.tasks
                     }
 
+       
+        todoEntry msg model  = 
+            { model | newTask = model.newTask |> TodoEntry.update msg }
+
         taskMsg id msg tasks =
             let
                 updateTask t =
@@ -71,28 +79,6 @@ update' msg model =
                 tasks |> List.map updateTask
     in
         case msg of
-            NoOp ->
-                model
-
-            UpdateNewTask s ->
-                case s of
-                    "" ->
-                        { model | newTask = Nothing }
-
-                    _ ->
-                        { model | newTask = Just s }
-
-            Add ->
-                addNewTask model
-
-            UpdateSearch s ->
-                case s of
-                    "" ->
-                        { model | search = Nothing }
-
-                    _ ->
-                        { model | search = Just s }
-
             HideDone ->
                 { model | hideDone = not model.hideDone }
 
@@ -105,6 +91,16 @@ update' msg model =
             TodoItemMsg id msg ->
                 { model | tasks = model.tasks |> taskMsg id msg }
 
+            SearchMsg msg ->
+                { model | search = model.search |> Search.update msg }
+
+            TodoEntryMsg (TodoEntry.Enter as msg) ->
+                model
+                |> addNewTask >> (todoEntry msg)
+            
+            TodoEntryMsg msg ->
+                todoEntry msg model
+
 
 update : Msg -> Model -> ( Model, Cmd a )
 update msg model =
@@ -116,24 +112,6 @@ view model =
     let
         toStr =
             Maybe.withDefault ""
-
-        newTaskView newTask =
-            input
-                [ placeholder "Enter new task"
-                , value (newTask |> toStr)
-                , onInput UpdateNewTask
-                , onEnterOrEscape Add (UpdateNewTask "")
-                ]
-                []
-
-        searchView search =
-            input
-                [ placeholder "search"
-                , value (search |> toStr)
-                , onInput UpdateSearch
-                , onEscape (UpdateSearch "")
-                ]
-                []
 
         hideDoneView hideDone tasks =
             if hasDone tasks then
@@ -219,8 +197,8 @@ view model =
             tasks |> List.any (.model >> .isDone)
     in
         div []
-            [ newTaskView model.newTask
-            , searchView model.search
+            [ map TodoEntryMsg (TodoEntry.view model.newTask)
+            , map SearchMsg (Search.view model.search)
             , taskListView model.tasks model.search model.hideDone
             , summaryView (model.tasks |> List.map (.model))
             , hideDoneView model.hideDone model.tasks
