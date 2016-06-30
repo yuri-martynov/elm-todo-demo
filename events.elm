@@ -4,9 +4,23 @@ import Html.Events exposing (..)
 import Json.Decode exposing (..)
 
 
+onEnter msg =
+    onKeyUp [ ( 13, msg ) ]
+
+
+onEscape msg =
+    onKeyUp [ ( 27, msg ) ]
+
+
+onEnterOrEscape enter escape =
+    onKeyUp [ ( 13, enter ), ( 27, escape ) ]
+
+
 onKeyUp options =
     let
-        codes = options |> List.map fst
+        codes =
+            options |> List.map fst
+
         tagger options code =
             case options of
                 [] ->
@@ -21,20 +35,17 @@ onKeyUp options =
         on "keyup" (map (tagger options) (keyCodes codes))
 
 
-onEnter msg =
-    onKeyUp [ ( 13, msg ) ]
-
-
-onEnterOrEscape enter escape =
-    onKeyUp [ ( 13, enter ), ( 27, escape ) ]
-
-keyCodes codes = 
+keyCodes codes =
     let
-        f codesToCheck code =
+        filterCodes codesToCheck code =
             case codesToCheck of
-                [] -> Err "key code not found"
+                [] ->
+                    Err "key code is not in the list"
+
                 c :: rest ->
-                    if (c == code) then Ok code
-                    else f rest code
+                    if (c == code) then
+                        Ok code
+                    else
+                        filterCodes rest code
     in
-        customDecoder keyCode (f codes)
+        customDecoder keyCode (filterCodes codes)

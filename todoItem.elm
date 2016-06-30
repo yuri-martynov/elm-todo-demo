@@ -66,7 +66,6 @@ view model =
                         , onEnterOrEscape FinishEditing CancelEditing
                         ]
                         []
-
     in
         span []
             [ input
