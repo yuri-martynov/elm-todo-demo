@@ -16,6 +16,9 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
+        Change "" ->
+            Nothing
+
         Change s ->
             Just s
 

@@ -14,19 +14,16 @@ type alias Model =
 
 
 type Msg
-    = NoOp
-    | Done
+    = Done
     | StartEditing
     | FinishEditing
-    | TaskChanged String
+    | Editing String
     | CancelEditing
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        NoOp ->
-            model
 
         StartEditing ->
             { model | newDescription = Just model.description }
@@ -42,7 +39,7 @@ update msg model =
                 Just s ->
                     { model | description = s, newDescription = Nothing }
 
-        TaskChanged s ->
+        Editing s ->
             { model | newDescription = Just s }
 
         CancelEditing ->
@@ -62,7 +59,7 @@ view model =
                 Just s ->
                     input
                         [ value s
-                        , onInput TaskChanged
+                        , onInput Editing
                         , onEnterOrEscape FinishEditing CancelEditing
                         ]
                         []
