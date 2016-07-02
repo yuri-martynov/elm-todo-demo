@@ -18,34 +18,18 @@ onEnterOrEscape enter escape =
 
 onKeyUp options =
     let
-        codes =
-            options |> List.map fst
-
-        tagger options code =
-            case options of
-                [] ->
-                    Debug.crash "key code should exists"
-
-                ( c, msg ) :: rest ->
-                    if (c == code) then
-                        msg
-                    else
-                        tagger rest code
-    in
-        on "keyup" (map (tagger options) (keyCodes codes))
-
-
-keyCodes codes =
-    let
-        filterCodes codesToCheck code =
-            case codesToCheck of
+        filter optionsToCheck code =
+            case optionsToCheck of
                 [] ->
                     Err "key code is not in the list"
 
-                c :: rest ->
+                ( c, msg ) :: rest ->
                     if (c == code) then
-                        Ok code
+                        Ok msg
                     else
-                        filterCodes rest code
+                        filter rest code
+
+        keyCodes =
+            customDecoder keyCode (filter options)
     in
-        customDecoder keyCode (filterCodes codes)
+        on "keyup" keyCodes

@@ -41,12 +41,13 @@ newTask id description =
 
 
 type Msg
-    = TodoEntryMsg TodoEntry.Msg
+    = Add
     | HideDone
     | Delete Int
     | DeleteCompleted
-    | TodoItemMsg Int TodoItem.Msg
+    | TodoEntryMsg TodoEntry.Msg
     | SearchMsg Search.Msg
+    | TodoItemMsg Int TodoItem.Msg
 
 
 update' : Msg -> Model -> Model
@@ -79,6 +80,9 @@ update' msg model =
                 tasks |> List.map updateTask
     in
         case msg of
+            Add ->
+                addNewTask model
+
             HideDone ->
                 { model | hideDone = not model.hideDone }
 
