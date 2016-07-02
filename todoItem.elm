@@ -1,10 +1,10 @@
 module TodoItem exposing (Model, Msg, update, view)
 
 import Events exposing (..)
-
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+
 
 type alias Model =
     { description : String
@@ -47,7 +47,8 @@ update msg model =
         Done ->
             { model | isDone = not model.isDone }
 
-view: Model -> Html Msg
+
+view : Model -> Html Msg
 view model =
     let
         descriptionView =
@@ -62,6 +63,7 @@ view model =
                         , onEnterOrEscape FinishEditing CancelEditing
                         ]
                         []
+
         doneView =
             input
                 [ type' "checkbox"
@@ -69,7 +71,6 @@ view model =
                 , onClick Done
                 ]
                 []
-
     in
         span []
             [ doneView
