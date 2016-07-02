@@ -35,8 +35,7 @@ newTask id description =
 
 
 type Msg
-    = NoOp
-    | UpdateNewTask String
+    = UpdateNewTask String
     | UpdateSearch String
     | Add
     | HideDone
@@ -71,9 +70,6 @@ update' msg model =
                 tasks |> List.map updateTask
     in
         case msg of
-            NoOp ->
-                model
-
             UpdateNewTask s ->
                 case s of
                     "" ->

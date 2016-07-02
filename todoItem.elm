@@ -14,8 +14,7 @@ type alias Model =
 
 
 type Msg
-    = NoOp
-    | Done
+    = Done
     | StartEditing
     | FinishEditing
     | TaskChanged String
@@ -25,9 +24,6 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        NoOp ->
-            model
-
         StartEditing ->
             { model | newDescription = Just model.description }
 
@@ -66,13 +62,16 @@ view model =
                         , onEnterOrEscape FinishEditing CancelEditing
                         ]
                         []
-    in
-        span []
-            [ input
+        doneView =
+            input
                 [ type' "checkbox"
                 , checked model.isDone
                 , onClick Done
                 ]
                 []
+
+    in
+        span []
+            [ doneView
             , descriptionView
             ]
