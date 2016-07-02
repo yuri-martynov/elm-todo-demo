@@ -41,18 +41,13 @@ newTask id description =
 
 
 type Msg
-<<<<<<< HEAD
-    = UpdateNewTask String
-    | UpdateSearch String
-    | Add
-=======
-    = TodoEntryMsg TodoEntry.Msg
->>>>>>> d72a09c40e3dd60b8ddf3797f2849b07156350c0
+    = Add
     | HideDone
     | Delete Int
     | DeleteCompleted
-    | TodoItemMsg Int TodoItem.Msg
+    | TodoEntryMsg TodoEntry.Msg
     | SearchMsg Search.Msg
+    | TodoItemMsg Int TodoItem.Msg
 
 
 update' : Msg -> Model -> Model
@@ -85,28 +80,9 @@ update' msg model =
                 tasks |> List.map updateTask
     in
         case msg of
-<<<<<<< HEAD
-            UpdateNewTask s ->
-                case s of
-                    "" ->
-                        { model | newTask = Nothing }
-
-                    _ ->
-                        { model | newTask = Just s }
-
             Add ->
                 addNewTask model
 
-            UpdateSearch s ->
-                case s of
-                    "" ->
-                        { model | search = Nothing }
-
-                    _ ->
-                        { model | search = Just s }
-
-=======
->>>>>>> d72a09c40e3dd60b8ddf3797f2849b07156350c0
             HideDone ->
                 { model | hideDone = not model.hideDone }
 
