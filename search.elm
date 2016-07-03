@@ -6,7 +6,9 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 
 
-type alias Model = Maybe String
+type alias Model =
+    String
+
 
 type Msg
     = Change String
@@ -16,22 +18,22 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Change "" ->
-            Nothing
-
         Change s ->
-            Just s
+            s
 
         Reset ->
-            Nothing
+            ""
 
 
 view : Model -> Html Msg
 view model =
     input
         [ placeholder "Enter text to search"
-        , value (model |> Maybe.withDefault "")
+        , value model
         , onInput Change
         , onEscape Reset
         ]
         []
+
+
+

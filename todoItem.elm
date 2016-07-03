@@ -6,10 +6,11 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 
 
-type alias Model =
-    { description : String
-    , isDone : Bool
-    , newDescription : Maybe String
+type alias Model a =
+    { a
+        | description : String
+        , isDone : Bool
+        , newDescription : Maybe String
     }
 
 
@@ -21,7 +22,6 @@ type Msg
     | CancelEditing
 
 
-update : Msg -> Model -> Model
 update msg model =
     case msg of
         StartEditing ->
@@ -48,7 +48,6 @@ update msg model =
             { model | isDone = not model.isDone }
 
 
-view : Model -> Html Msg
 view model =
     let
         descriptionView =
