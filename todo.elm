@@ -10,10 +10,8 @@ import Html.Attributes exposing (..)
 import String
 
 
-type alias TodoItemWithId =
-    { id : Int
-    , model : TodoItem.Model
-    }
+type alias TodoItem =
+    TodoItem.Model { id : Int }
 
 
 type alias Model =
@@ -21,7 +19,7 @@ type alias Model =
     , newTask : TodoEntry.Model
     , search : Search.Model
     , hideDone : Bool
-    , tasks : List TodoItemWithId
+    , tasks : List TodoItem
     }
 
 
@@ -35,9 +33,9 @@ emptyModel =
     }
 
 
-newTask : Int -> String -> TodoItemWithId
+newTask : Int -> String -> TodoItem
 newTask id description =
-    { id = id, model = { description = description, isDone = False, newDescription = Nothing } }
+    { id = id, description = description, isDone = False, newDescription = Nothing }
 
 
 type Msg
@@ -65,15 +63,14 @@ update' msg model =
                         , tasks = (newTask model.nextId s) :: model.tasks
                     }
 
-       
-        todoEntry msg model  = 
+        todoEntry msg model =
             { model | newTask = model.newTask |> TodoEntry.update msg }
 
         taskMsg id msg tasks =
             let
                 updateTask t =
                     if (t.id == id) then
-                        { t | model = (t.model |> TodoItem.update msg) }
+                        t |> TodoItem.update msg
                     else
                         t
             in
@@ -90,7 +87,7 @@ update' msg model =
                 { model | tasks = model.tasks |> List.filter (\t -> t.id /= id) }
 
             DeleteCompleted ->
-                { model | tasks = model.tasks |> List.filter (.model >> .isDone >> not) }
+                { model | tasks = model.tasks |> List.filter (.isDone >> not) }
 
             TodoItemMsg id msg ->
                 { model | tasks = model.tasks |> taskMsg id msg }
@@ -98,10 +95,11 @@ update' msg model =
             SearchMsg msg ->
                 { model | search = model.search |> Search.update msg }
 
-            TodoEntryMsg (TodoEntry.Enter as msg) ->
+            TodoEntryMsg ((TodoEntry.Enter) as msg) ->
                 model
-                |> addNewTask >> (todoEntry msg)
-            
+                    |> addNewTask
+                    >> (todoEntry msg)
+
             TodoEntryMsg msg ->
                 todoEntry msg model
 
@@ -141,11 +139,11 @@ view model =
                             tasks
 
                         Just s ->
-                            tasks |> List.filter (\t -> t.model.description |> String.contains s)
+                            tasks |> List.filter (\t -> t.description |> String.contains s)
 
                 doneFilter tasks =
                     if (hideDone) then
-                        tasks |> List.filter (\t -> t.model.isDone == False)
+                        tasks |> List.filter (\t -> t.isDone == False)
                     else
                         tasks
 
@@ -159,15 +157,15 @@ view model =
             in
                 ul [] tasksView
 
-        taskView : TodoItemWithId -> Html Msg
-        taskView { id, model } =
+        taskView : TodoItem -> Html Msg
+        taskView task =
             let
                 deleteButtonView =
-                    button [ onClick (Delete id) ]
+                    button [ onClick (Delete task.id) ]
                         [ text "x" ]
             in
                 li []
-                    [ map (TodoItemMsg id) (TodoItem.view model)
+                    [ map (TodoItemMsg task.id) (TodoItem.view task)
                     , deleteButtonView
                     ]
 
@@ -198,13 +196,13 @@ view model =
             pluralize ( "item", "items" )
 
         hasDone tasks =
-            tasks |> List.any (.model >> .isDone)
+            tasks |> List.any (.isDone)
     in
         div []
             [ map TodoEntryMsg (TodoEntry.view model.newTask)
             , map SearchMsg (Search.view model.search)
             , taskListView model.tasks model.search model.hideDone
-            , summaryView (model.tasks |> List.map (.model))
+            , summaryView model.tasks
             , hideDoneView model.hideDone model.tasks
             ]
 
