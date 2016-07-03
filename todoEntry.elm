@@ -6,7 +6,8 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 
 
-type alias Model = Maybe String
+type alias Model =
+    String
 
 
 type Msg
@@ -18,22 +19,22 @@ type Msg
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        Change s -> 
-            Just s
+        Change s ->
+            s
 
         Reset ->
-            Nothing
+            ""
 
         Enter ->
-            Nothing
+            ""
 
 
 view : Model -> Html Msg
 view model =
     input
         [ placeholder "Enter new task"
-        , value (model |> Maybe.withDefault "")
+        , value model
         , onInput Change
-        , onEnterOrEscape Enter Reset 
+        , onEnterOrEscape Enter Reset
         ]
         []
