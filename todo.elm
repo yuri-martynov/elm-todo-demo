@@ -64,7 +64,6 @@ update' msg model =
                 s ->
                     { model
                         | nextId = model.nextId + 1
-                        , newTask = ""
                         , tasks = (newTask model.nextId s) :: model.tasks
                     }
 
@@ -95,7 +94,7 @@ update' msg model =
                 { model | search = model.search |> Search.update msg }
 
             TodoEntryMsg ((TodoEntry.Enter) as msg) ->
-                model |> addNewTask >> (todoEntry msg)
+                model |> addNewTask |> (todoEntry msg)
 
             TodoEntryMsg msg ->
                 todoEntry msg model
