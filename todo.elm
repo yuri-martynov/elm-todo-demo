@@ -43,8 +43,7 @@ newTask id description =
 
 
 type Msg
-    = Add
-    | Delete Int
+    = Delete Int
     | TodoEntryMsg TodoEntry.Msg
     | SearchMsg Search.Msg
     | TodoItemMsg Int TodoItem.Msg
@@ -80,9 +79,6 @@ update' msg model =
                 tasks |> List.map updateTask
     in
         case msg of
-            Add ->
-                addNewTask model
-
             Controls msg ->
                 model |> Controls.update msg
 
