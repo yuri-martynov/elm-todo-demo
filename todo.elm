@@ -11,12 +11,15 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import String
 
+
 port setStorage : Model -> Cmd msg
+
 
 type alias TodoItem =
     { id : Int
-    , model: TodoItem.Model
+    , model : TodoItem.Model
     }
+
 
 type alias Model =
     { nextId : Int
@@ -33,13 +36,13 @@ emptyModel =
     , newTask = ""
     , tasks = []
     , search = ""
-    , hideDone = False 
+    , hideDone = False
     }
 
 
 newTask : Int -> String -> TodoItem
 newTask id description =
-    { id = id, model = {description = description, isDone = False, newDescription = Nothing} }
+    { id = id, model = { description = description, isDone = False, newDescription = Nothing } }
 
 
 type Msg
@@ -72,7 +75,7 @@ update' msg model =
             let
                 updateTask t =
                     if (t.id == id) then
-                        {t | model = t.model |> TodoItem.update msg}
+                        { t | model = t.model |> TodoItem.update msg }
                     else
                         t
             in
@@ -100,13 +103,13 @@ update' msg model =
 
 update : Msg -> Model -> ( Model, Cmd a )
 update msg model =
-    (update' msg model, setStorage model)
+    ( update' msg model, setStorage model )
 
 
 view : Model -> Html Msg
 view model =
     let
-        taskListView model  =
+        taskListView model =
             let
                 searchFilter tasks =
                     case model.search of
@@ -154,15 +157,17 @@ view model =
 
 
 init savedModel =
-    (savedModel ? emptyModel, Cmd.none)
+    ( savedModel ? emptyModel, Cmd.none )
 
-(?) maybe default = 
+
+(?) maybe default =
     Maybe.withDefault default maybe
 
 
 main =
-    programWithFlags { 
-        init = init, 
-        update = update, 
-        view = view, 
-        subscriptions = \_ -> Sub.none }
+    programWithFlags
+        { init = init
+        , update = update
+        , view = view
+        , subscriptions = \_ -> Sub.none
+        }
