@@ -33,7 +33,8 @@ update msg model =
             { model | hideDone = not model.hideDone }
 
         DeleteCompleted ->
-            { model | tasks = model.tasks |> List.filter (.isDone >> not) }
+            { model | tasks = model.tasks |> List.filter (.model >> .isDone >> not) }
+
 
 hasDone tasks =
-    tasks |> List.any (.isDone)
+    tasks |> List.any (.model >> .isDone)

@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Todo exposing (..)
 
 import TodoItem
 import Search
@@ -11,10 +11,12 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import String
 
+port setStorage : Model -> Cmd msg
 
 type alias TodoItem =
-    TodoItem.Model { id : Int }
-
+    { id : Int
+    , model: TodoItem.Model
+    }
 
 type alias Model =
     { nextId : Int
@@ -37,7 +39,7 @@ emptyModel =
 
 newTask : Int -> String -> TodoItem
 newTask id description =
-    { id = id, description = description, isDone = False, newDescription = Nothing }
+    { id = id, model = {description = description, isDone = False, newDescription = Nothing} }
 
 
 type Msg
@@ -71,7 +73,7 @@ update' msg model =
             let
                 updateTask t =
                     if (t.id == id) then
-                        t |> TodoItem.update msg
+                        {t | model = t.model |> TodoItem.update msg}
                     else
                         t
             in
@@ -85,7 +87,7 @@ update' msg model =
                 model |> Controls.update msg
 
             Delete id ->
-                { model | tasks = model.tasks |> List.filter (\t -> t.id /= id) }
+                { model | tasks = model.tasks |> List.filter (.id >> (/=) id) }
 
             TodoItemMsg id msg ->
                 { model | tasks = model.tasks |> taskMsg id msg }
@@ -102,7 +104,7 @@ update' msg model =
 
 update : Msg -> Model -> ( Model, Cmd a )
 update msg model =
-    (update' msg model) ! []
+    (update' msg model, setStorage model)
 
 
 view : Model -> Html Msg
@@ -116,11 +118,11 @@ view model =
                             tasks
 
                         s ->
-                            tasks |> List.filter (\t -> t.description |> String.contains s)
+                            tasks |> List.filter (.model >> .description >> String.contains s)
 
                 doneFilter tasks =
                     if (model.hideDone) then
-                        tasks |> List.filter (\t -> t.isDone == False)
+                        tasks |> List.filter (.model >> .isDone >> not)
                     else
                         tasks
 
@@ -142,7 +144,7 @@ view model =
                         [ text "x" ]
             in
                 li []
-                    [ map (TodoItemMsg task.id) (TodoItem.view task)
+                    [ map (TodoItemMsg task.id) (TodoItem.view task.model)
                     , deleteButtonView
                     ]
     in
@@ -155,9 +157,16 @@ view model =
             ]
 
 
-init =
-    emptyModel ! []
+init savedModel =
+    (savedModel ? emptyModel, Cmd.none)
+
+(?) maybe default = 
+    Maybe.withDefault default maybe
 
 
 main =
-    program { init = init, update = update, view = view, subscriptions = \_ -> Sub.none }
+    programWithFlags { 
+        init = init, 
+        update = update, 
+        view = view, 
+        subscriptions = \_ -> Sub.none }

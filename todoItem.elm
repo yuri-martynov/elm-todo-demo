@@ -6,11 +6,10 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 
 
-type alias Model a =
-    { a
-        | description : String
-        , isDone : Bool
-        , newDescription : Maybe String
+type alias Model =
+    { description : String
+    , isDone : Bool
+    , newDescription : Maybe String
     }
 
 

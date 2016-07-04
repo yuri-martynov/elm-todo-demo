@@ -10,7 +10,7 @@ view model =
         let
             notDone =
                 model
-                    |> List.filter (.isDone >> not)
+                    |> List.filter (.model >> .isDone >> not)
                     |> List.length
 
             pluralizeItems =

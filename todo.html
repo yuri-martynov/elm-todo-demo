@@ -1,0 +1,24 @@
+<!--elm-make todo.elm --output toso.js-->
+
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <script type="text/javascript" src="todo.js"></script>
+</head>
+
+<body>
+</body>
+
+<script type="text/javascript">
+var storedState = localStorage.getItem('elm-todo-state');
+var startingState = storedState ? JSON.parse(storedState) : null;
+var todomvc = Elm.Todo.fullscreen(startingState);
+todomvc.ports.setStorage.subscribe(function(state) {
+    localStorage.setItem('elm-todo-state', JSON.stringify(state));
+});
+</script>
+
+</html>
+
+
