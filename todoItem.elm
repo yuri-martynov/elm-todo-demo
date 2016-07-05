@@ -1,9 +1,10 @@
-module TodoItem exposing (Model, Msg, update, view)
+module TodoItem exposing (Model, Msg, update, view, tests)
 
 import Events exposing (..)
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import ElmTest exposing (..)
 
 
 type alias Model =
@@ -74,3 +75,31 @@ view model =
             [ doneView
             , descriptionView
             ]
+
+
+tests =
+    let
+        model =
+            { description = "old", newDescription = Nothing, isDone = False }
+
+        editing s =
+            model
+                |> update StartEditing
+                |> update (Editing s)
+
+        editAndCancel =
+            editing "new" |> update CancelEditing
+
+        editAndCommit =
+            editing "new" |> update FinishEditing
+
+        editToEmptyString =
+            editing "" |> update FinishEditing
+
+        assertDescription model expectedDescription =
+            assertEqual (model.description) expectedDescription
+    in
+        [ test "cancel rolbacks changes" (assertDescription editAndCancel "old")
+        , test "enter commits changes" (assertDescription editAndCommit "new")
+        , test "enter empty string rollbacks changes" (assertDescription editToEmptyString "old")
+        ]
