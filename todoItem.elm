@@ -74,3 +74,9 @@ view model =
             [ doneView
             , descriptionView
             ]
+
+
+tests = 
+    [ test "Addition" (assertEqual (3 + 7) 10)
+    , test "String.left" (assertEqual "a" (String.left 1 "abcdefg"))
+    ]
