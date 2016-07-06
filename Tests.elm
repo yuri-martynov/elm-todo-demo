@@ -1,11 +1,12 @@
 import ElmTest exposing (..)
 
 import TodoItem exposing (tests)
+import TodoEntry exposing (tests)
 
-all : Test
-all =
+testSuite =
     suite "A Test Suite"
-        TodoItem.tests
+        (TodoItem.tests ++ TodoEntry.tests)
+
 
 main = 
-    ElmTest.runSuiteHtml all
+    runSuiteHtml testSuite

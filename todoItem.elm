@@ -76,7 +76,6 @@ view model =
             , descriptionView
             ]
 
-
 tests =
     let
         model =
@@ -99,7 +98,8 @@ tests =
         assertDescription model expectedDescription =
             assertEqual (model.description) expectedDescription
     in
-        [ test "cancel rolbacks changes" (assertDescription editAndCancel "old")
+        [ test "cancel rollbacks changes" (assertDescription editAndCancel "old")
         , test "enter commits changes" (assertDescription editAndCommit "new")
-        , test "enter empty string rollbacks changes" (assertDescription editToEmptyString "old")
+        , test "empty string rollbacks changes" (assertDescription editToEmptyString "old")
         ]
+

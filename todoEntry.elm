@@ -1,10 +1,11 @@
-module TodoEntry exposing (Model, Msg(Enter), update, view)
+module TodoEntry exposing (Model, Msg(Enter), update, view, tests)
 
 import Events exposing (..)
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 
+import ElmTest exposing (..)
 
 type alias Model =
     String
@@ -38,3 +39,8 @@ view model =
         , onEnterOrEscape Enter Reset
         ]
         []
+
+
+tests = 
+    [ test "Resets on Enter" (assertEqual ("str" |> update Enter) "")
+    ]
