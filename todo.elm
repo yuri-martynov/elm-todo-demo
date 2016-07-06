@@ -9,15 +9,10 @@ import TodoList
 import Html exposing (..)
 import Html.App exposing (..)
 import Html.Attributes exposing (..)
+import Html.Lazy exposing (..)
 
 
 port setStorage : Model -> Cmd msg
-
-
-type alias TodoItem =
-    { id : Int
-    , model : TodoItem.Model
-    }
 
 
 type alias Model =
@@ -25,7 +20,7 @@ type alias Model =
     , newTask : TodoEntry.Model
     , search : Search.Model
     , hideDone : Bool
-    , tasks : List TodoItem
+    , tasks : TodoList.Model
     }
 
 
@@ -37,11 +32,6 @@ emptyModel =
     , search = ""
     , hideDone = False
     }
-
-
-newTask : Int -> String -> TodoItem
-newTask id description =
-    { id = id, model = { description = description, isDone = False, newDescription = Nothing } }
 
 
 type Msg
@@ -62,7 +52,7 @@ update' msg model =
                 s ->
                     { model
                         | nextId = model.nextId + 1
-                        , tasks = (newTask model.nextId s) :: model.tasks
+                        , tasks = (TodoList.newTask model.nextId s) :: model.tasks
                     }
 
         todoEntry msg model =
@@ -93,11 +83,11 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ map TodoEntryMsg (TodoEntry.view model.newTask)
-        , map SearchMsg (Search.view model.search)
-        , map Controls (Controls.view model)
-        , map TodoList (TodoList.view model.tasks (Controls.filter model))
-        , Summary.view model.tasks
+        [ map TodoEntryMsg (lazy TodoEntry.view model.newTask)
+        , map SearchMsg (lazy Search.view model.search)
+        , map Controls (lazy Controls.view model)
+        , map TodoList (lazy2 TodoList.view model.tasks (Controls.filter model))
+        , lazy Summary.view model.tasks
         ]
 
 
