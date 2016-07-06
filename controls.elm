@@ -1,8 +1,9 @@
-module Controls exposing (Msg(..), update, view)
+module Controls exposing (Msg(..), update, view, filter)
 
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import String exposing (..)
 
 
 type Msg
@@ -34,6 +35,25 @@ update msg model =
 
         DeleteCompleted ->
             { model | tasks = model.tasks |> List.filter (.model >> .isDone >> not) }
+
+
+filter model =
+    let
+        searchFilter =
+            case model.search of
+                "" ->
+                    \_ -> True
+
+                s ->
+                    .description >> contains s
+
+        doneFilter =
+            if (model.hideDone) then
+                .isDone >> not
+            else
+                \_ -> True
+    in
+        \t -> doneFilter t.model && searchFilter t.model 
 
 
 hasDone tasks =

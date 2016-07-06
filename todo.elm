@@ -5,11 +5,10 @@ import Search
 import TodoEntry
 import Summary
 import Controls
+import TodoList
 import Html exposing (..)
 import Html.App exposing (..)
-import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import String
 
 
 port setStorage : Model -> Cmd msg
@@ -46,10 +45,9 @@ newTask id description =
 
 
 type Msg
-    = Delete Int
+    = TodoList TodoList.Msg
     | TodoEntryMsg TodoEntry.Msg
     | SearchMsg Search.Msg
-    | TodoItemMsg Int TodoItem.Msg
     | Controls Controls.Msg
 
 
@@ -69,26 +67,13 @@ update' msg model =
 
         todoEntry msg model =
             { model | newTask = model.newTask |> TodoEntry.update msg }
-
-        taskMsg id msg tasks =
-            let
-                updateTask t =
-                    if (t.id == id) then
-                        { t | model = t.model |> TodoItem.update msg }
-                    else
-                        t
-            in
-                tasks |> List.map updateTask
     in
         case msg of
             Controls msg ->
                 model |> Controls.update msg
 
-            Delete id ->
-                { model | tasks = model.tasks |> List.filter (.id >> (/=) id) }
-
-            TodoItemMsg id msg ->
-                { model | tasks = model.tasks |> taskMsg id msg }
+            TodoList msg ->
+                { model | tasks = model.tasks |> TodoList.update msg }
 
             SearchMsg msg ->
                 { model | search = model.search |> Search.update msg }
@@ -107,52 +92,13 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    let
-        taskListView model =
-            let
-                searchFilter tasks =
-                    case model.search of
-                        "" ->
-                            tasks
-
-                        s ->
-                            tasks |> List.filter (.model >> .description >> String.contains s)
-
-                doneFilter tasks =
-                    if (model.hideDone) then
-                        tasks |> List.filter (.model >> .isDone >> not)
-                    else
-                        tasks
-
-                filter =
-                    doneFilter >> searchFilter
-
-                tasksView =
-                    model.tasks
-                        |> filter
-                        |> List.map taskView
-            in
-                ul [] tasksView
-
-        taskView : TodoItem -> Html Msg
-        taskView task =
-            let
-                deleteButtonView =
-                    button [ onClick (Delete task.id) ]
-                        [ text "x" ]
-            in
-                li []
-                    [ map (TodoItemMsg task.id) (TodoItem.view task.model)
-                    , deleteButtonView
-                    ]
-    in
-        div []
-            [ map TodoEntryMsg (TodoEntry.view model.newTask)
-            , map SearchMsg (Search.view model.search)
-            , map Controls (Controls.view model)
-            , taskListView model
-            , Summary.view model.tasks
-            ]
+    div []
+        [ map TodoEntryMsg (TodoEntry.view model.newTask)
+        , map SearchMsg (Search.view model.search)
+        , map Controls (Controls.view model)
+        , map TodoList (TodoList.view model.tasks (Controls.filter model))
+        , Summary.view model.tasks
+        ]
 
 
 init savedModel =
