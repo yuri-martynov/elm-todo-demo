@@ -45,22 +45,19 @@ view items filter =
 
 update msg items =
     let
-        todoItem id msg =
-            let
-                updateTask t =
-                    if (t.id == id) then
-                        { t | model = t.model |> TodoItem.update msg }
-                    else
-                        t
-            in
-                items |> List.map updateTask
+        updateTask id msg t =
+            if (t.id == id) then
+                { t | model = t.model |> TodoItem.update msg }
+            else
+                t
     in
         case msg of
             TodoItem id msg ->
-                todoItem id msg
+                items |> List.map (updateTask id msg)
 
             Delete id ->
                 items |> List.filter (.id >> (/=) id)
+
 
 newTask : Int -> String -> TodoItemWithId
 newTask id description =
