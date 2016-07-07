@@ -82,28 +82,28 @@ tests =
         model =
             { description = "old", newDescription = Nothing, isDone = False }
 
-        assertDescription expectedDescription model =
-            assertEqual (model.description) expectedDescription
+        assert f expected model =
+            assertEqual (f model) expected
     in
         [ test "cancel rollbacks changes"
             (model
                 |> update StartEditing
                 |> update (Editing "new")
                 |> update CancelEditing
-                |> assertDescription "old"
+                |> assert .description "old"
             )
         , test "enter commits changes"
             (model
                 |> update StartEditing
                 |> update (Editing "new")
                 |> update FinishEditing
-                |> assertDescription "new"
+                |> assert .description "new"
             )
         , test "empty string rollbacks changes"
             (model
                 |> update StartEditing
                 |> update (Editing "")
                 |> update FinishEditing
-                |> assertDescription "old"
+                |> assert .description "old"
             )
         ]
