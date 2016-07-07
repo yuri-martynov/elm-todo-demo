@@ -25,21 +25,24 @@ type Msg
 view : Model -> (TodoItem.Model -> Bool) -> Html Msg
 view items filter =
     let
-        taskView task =
-            let
-                deleteButtonView =
-                    button [ onClick (Delete task.id) ]
-                        [ text "x" ]
-            in
-                li []
-                    [ map (TodoItem task.id) (TodoItem.view task.model)
-                    , deleteButtonView
+        deleteButtonView item =
+            button [ onClick (Delete item.id) ] [ text "x" ]
+
+        styles filter item =
+            if filter item then
+                []
+            else
+                [("display", "none")]
+
+        taskView filter item  =
+                li [style (styles filter item)]
+                    [ map (TodoItem item.id) (TodoItem.view item.model)
+                    , deleteButtonView item
                     ]
 
         tasksView =
             items
-                |> List.filter (.model >> filter)
-                |> List.map taskView
+                |> List.map (taskView (.model >> filter))
     in
         ul [] tasksView
 
