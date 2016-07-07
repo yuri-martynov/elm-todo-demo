@@ -1,24 +1,18 @@
-port module Todo exposing (..)
+port module Todo exposing (main, tests)
 
-import TodoItem
 import Search
 import TodoEntry
 import Summary
 import Controls
+import TodoList
 import Html exposing (..)
 import Html.App exposing (..)
-import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import String
+import Html.Lazy exposing (..)
 
+import ElmTest exposing (..)
 
 port setStorage : Model -> Cmd msg
-
-
-type alias TodoItem =
-    { id : Int
-    , model : TodoItem.Model
-    }
 
 
 type alias Model =
@@ -26,7 +20,7 @@ type alias Model =
     , newTask : TodoEntry.Model
     , search : Search.Model
     , hideDone : Bool
-    , tasks : List TodoItem
+    , tasks : TodoList.Model
     }
 
 
@@ -40,64 +34,30 @@ emptyModel =
     }
 
 
-newTask : Int -> String -> TodoItem
-newTask id description =
-    { id = id, model = { description = description, isDone = False, newDescription = Nothing } }
-
-
 type Msg
-    = Delete Int
-    | TodoEntryMsg TodoEntry.Msg
-    | SearchMsg Search.Msg
-    | TodoItemMsg Int TodoItem.Msg
+    = TodoList TodoList.Msg
+    | TodoEntry TodoEntry.Msg
+    | Search Search.Msg
     | Controls Controls.Msg
 
 
 update' : Msg -> Model -> Model
 update' msg model =
-    let
-        addNewTask model =
-            case model.newTask of
-                "" ->
-                    model
+    case msg of
+        Controls msg ->
+            model |> Controls.update msg
 
-                s ->
-                    { model
-                        | nextId = model.nextId + 1
-                        , tasks = (newTask model.nextId s) :: model.tasks
-                    }
+        TodoList msg ->
+            { model | tasks = model.tasks |> TodoList.update msg }
 
-        todoEntry msg model =
-            { model | newTask = model.newTask |> TodoEntry.update msg }
+        Search msg ->
+            { model | search = model.search |> Search.update msg }
 
-        taskMsg id msg tasks =
-            let
-                updateTask t =
-                    if (t.id == id) then
-                        { t | model = t.model |> TodoItem.update msg }
-                    else
-                        t
-            in
-                tasks |> List.map updateTask
-    in
-        case msg of
-            Controls msg ->
-                model |> Controls.update msg
+        TodoEntry TodoEntry.Enter ->
+            model |> add |> (todoEntry TodoEntry.Enter)
 
-            Delete id ->
-                { model | tasks = model.tasks |> List.filter (.id >> (/=) id) }
-
-            TodoItemMsg id msg ->
-                { model | tasks = model.tasks |> taskMsg id msg }
-
-            SearchMsg msg ->
-                { model | search = model.search |> Search.update msg }
-
-            TodoEntryMsg ((TodoEntry.Enter) as msg) ->
-                model |> addNewTask |> (todoEntry msg)
-
-            TodoEntryMsg msg ->
-                todoEntry msg model
+        TodoEntry msg ->
+            todoEntry msg model
 
 
 update : Msg -> Model -> ( Model, Cmd a )
@@ -107,52 +67,13 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    let
-        taskListView model =
-            let
-                searchFilter tasks =
-                    case model.search of
-                        "" ->
-                            tasks
-
-                        s ->
-                            tasks |> List.filter (.model >> .description >> String.contains s)
-
-                doneFilter tasks =
-                    if (model.hideDone) then
-                        tasks |> List.filter (.model >> .isDone >> not)
-                    else
-                        tasks
-
-                filter =
-                    doneFilter >> searchFilter
-
-                tasksView =
-                    model.tasks
-                        |> filter
-                        |> List.map taskView
-            in
-                ul [] tasksView
-
-        taskView : TodoItem -> Html Msg
-        taskView task =
-            let
-                deleteButtonView =
-                    button [ onClick (Delete task.id) ]
-                        [ text "x" ]
-            in
-                li []
-                    [ map (TodoItemMsg task.id) (TodoItem.view task.model)
-                    , deleteButtonView
-                    ]
-    in
-        div []
-            [ map TodoEntryMsg (TodoEntry.view model.newTask)
-            , map SearchMsg (Search.view model.search)
-            , map Controls (Controls.view model)
-            , taskListView model
-            , Summary.view model.tasks
-            ]
+    div []
+        [ map TodoEntry (lazy TodoEntry.view model.newTask)
+        , map Search (lazy Search.view model.search)
+        , map Controls (lazy Controls.view model)
+        , map TodoList (lazy2 TodoList.view model.tasks (Controls.filter model.search model.hideDone))
+        , lazy Summary.view model.tasks
+        ]
 
 
 init savedModel =
@@ -170,3 +91,42 @@ main =
         , view = view
         , subscriptions = \_ -> Sub.none
         }
+
+
+
+-- helpers
+
+
+add model =
+    case model.newTask of
+        "" ->
+            model
+
+        s ->
+            { model
+                | nextId = model.nextId + 1
+                , tasks = (TodoList.initItem model.nextId s) :: model.tasks
+            }
+
+
+todoEntry msg model =
+    { model | newTask = model.newTask |> TodoEntry.update msg }
+
+
+-- test
+
+tests =
+    let
+        model: Model
+        model = 
+            { emptyModel |  newTask = "new" }
+    in
+        [ test "Adds new todo item" (
+            (model 
+                |> update' (TodoEntry TodoEntry.Enter) 
+                |> .tasks 
+                |> List.length) 
+                |> assertEqual 1
+            )
+        -- , test "Resets on Reset" (assertEqual ("str" |> update Reset) "")
+        ]

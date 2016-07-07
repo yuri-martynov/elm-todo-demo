@@ -4,8 +4,8 @@ import Events exposing (..)
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-
 import ElmTest exposing (..)
+
 
 type alias Model =
     String
@@ -41,6 +41,7 @@ view model =
         []
 
 
-tests = 
-    [ test "Reset on Enter" (assertEqual ("str" |> update Enter) "")
+tests =
+    [ test "Resets on Enter" (assertEqual ("str" |> update Enter) "")
+    , test "Resets on Reset" (assertEqual ("str" |> update Reset) "")
     ]

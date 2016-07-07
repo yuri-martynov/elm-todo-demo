@@ -1,47 +1,28 @@
-module TodoItem exposing (Model, Msg, update, view)
+module TodoItem exposing (Model, Msg, update, view, init)
 
-import Events exposing (..)
+import EditableInput
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import Html.App exposing (map)
+import Html.Lazy exposing (lazy)
 
 
 type alias Model =
-    { description : String
+    { description : EditableInput.Model
     , isDone : Bool
-    , newDescription : Maybe String
     }
 
 
 type Msg
     = Done
-    | StartEditing
-    | FinishEditing
-    | Editing String
-    | CancelEditing
+    | Description EditableInput.Msg
 
 
 update msg model =
     case msg of
-        StartEditing ->
-            { model | newDescription = Just model.description }
-
-        FinishEditing ->
-            case model.newDescription of
-                Nothing ->
-                    model
-
-                Just "" ->
-                    model
-
-                Just s ->
-                    { model | description = s, newDescription = Nothing }
-
-        Editing s ->
-            { model | newDescription = Just s }
-
-        CancelEditing ->
-            { model | newDescription = Nothing }
+        Description msg ->
+            { model | description = model.description |> EditableInput.update msg }
 
         Done ->
             { model | isDone = not model.isDone }
@@ -49,19 +30,6 @@ update msg model =
 
 view model =
     let
-        descriptionView =
-            case model.newDescription of
-                Nothing ->
-                    label [ onDoubleClick StartEditing ] [ text model.description ]
-
-                Just s ->
-                    input
-                        [ value s
-                        , onInput Editing
-                        , onEnterOrEscape FinishEditing CancelEditing
-                        ]
-                        []
-
         doneView =
             input
                 [ type' "checkbox"
@@ -72,11 +40,10 @@ view model =
     in
         span []
             [ doneView
-            , descriptionView
+            , map Description (lazy EditableInput.view model.description)
             ]
 
 
-tests = 
-    [ test "Addition" (assertEqual (3 + 7) 10)
-    , test "String.left" (assertEqual "a" (String.left 1 "abcdefg"))
-    ]
+init : String -> Model
+init description =
+    { description = EditableInput.init description, isDone = False }
