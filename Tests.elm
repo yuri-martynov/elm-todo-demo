@@ -1,11 +1,11 @@
 import ElmTest exposing (..)
 
-import TodoItem exposing (tests)
+import EditableInput exposing (tests)
 import TodoEntry exposing (tests)
 
 testSuite =
     suite "A Test Suite"
-        (TodoItem.tests ++ TodoEntry.tests)
+        (EditableInput.tests ++ TodoEntry.tests)
 
 
 main = 

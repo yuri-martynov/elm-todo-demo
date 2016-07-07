@@ -34,6 +34,3 @@ view model =
         , onEscape Reset
         ]
         []
-
-
-

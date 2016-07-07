@@ -1,5 +1,6 @@
 module Controls exposing (Msg(..), update, view, filter)
 
+import TodoItem exposing (Model)
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
@@ -37,23 +38,24 @@ update msg model =
             { model | tasks = model.tasks |> List.filter (.model >> .isDone >> not) }
 
 
-filter model =
+filter : String -> Bool -> (TodoItem.Model -> Bool)
+filter search hideDone =
     let
         searchFilter =
-            case model.search of
+            case search of
                 "" ->
                     \_ -> True
 
                 s ->
-                    .description >> contains s
+                    .description >> .text >> contains s
 
         doneFilter =
-            if (model.hideDone) then
+            if (hideDone) then
                 .isDone >> not
             else
                 \_ -> True
     in
-        \t -> doneFilter t.model && searchFilter t.model 
+        \t -> doneFilter t && searchFilter t
 
 
 hasDone tasks =

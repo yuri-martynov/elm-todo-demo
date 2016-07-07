@@ -52,7 +52,7 @@ update' msg model =
                 s ->
                     { model
                         | nextId = model.nextId + 1
-                        , tasks = (TodoList.newTask model.nextId s) :: model.tasks
+                        , tasks = (TodoList.initItem model.nextId s) :: model.tasks
                     }
 
         todoEntry msg model =
@@ -86,7 +86,7 @@ view model =
         [ map TodoEntryMsg (lazy TodoEntry.view model.newTask)
         , map SearchMsg (lazy Search.view model.search)
         , map Controls (lazy Controls.view model)
-        , map TodoList (lazy2 TodoList.view model.tasks (Controls.filter model))
+        , map TodoList (lazy2 TodoList.view model.tasks (Controls.filter model.search model.hideDone))
         , lazy Summary.view model.tasks
         ]
 
