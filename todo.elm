@@ -1,4 +1,4 @@
-port module Todo exposing (..)
+port module Todo exposing (main, tests)
 
 import Search
 import TodoEntry
@@ -10,6 +10,7 @@ import Html.App exposing (..)
 import Html.Attributes exposing (..)
 import Html.Lazy exposing (..)
 
+import ElmTest exposing (..)
 
 port setStorage : Model -> Cmd msg
 
@@ -110,3 +111,22 @@ add model =
 
 todoEntry msg model =
     { model | newTask = model.newTask |> TodoEntry.update msg }
+
+
+-- test
+
+tests =
+    let
+        model: Model
+        model = 
+            { emptyModel |  newTask = "new" }
+    in
+        [ test "Adds new todo item" (
+            (model 
+                |> update' (TodoEntry TodoEntry.Enter) 
+                |> .tasks 
+                |> List.length) 
+                |> assertEqual 1
+            )
+        -- , test "Resets on Reset" (assertEqual ("str" |> update Reset) "")
+        ]

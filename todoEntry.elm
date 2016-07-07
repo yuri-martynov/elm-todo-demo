@@ -43,4 +43,5 @@ view model =
 
 tests =
     [ test "Resets on Enter" (assertEqual ("str" |> update Enter) "")
+    , test "Resets on Reset" (assertEqual ("str" |> update Reset) "")
     ]
