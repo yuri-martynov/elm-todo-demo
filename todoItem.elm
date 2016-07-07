@@ -76,30 +76,34 @@ view model =
             , descriptionView
             ]
 
+
 tests =
     let
         model =
             { description = "old", newDescription = Nothing, isDone = False }
 
-        editing s =
-            model
-                |> update StartEditing
-                |> update (Editing s)
-
-        editAndCancel =
-            editing "new" |> update CancelEditing
-
-        editAndCommit =
-            editing "new" |> update FinishEditing
-
-        editToEmptyString =
-            editing "" |> update FinishEditing
-
-        assertDescription model expectedDescription =
+        assertDescription expectedDescription model =
             assertEqual (model.description) expectedDescription
     in
-        [ test "cancel rollbacks changes" (assertDescription editAndCancel "old")
-        , test "enter commits changes" (assertDescription editAndCommit "new")
-        , test "empty string rollbacks changes" (assertDescription editToEmptyString "old")
+        [ test "cancel rollbacks changes"
+            (model
+                |> update StartEditing
+                |> update (Editing "new")
+                |> update CancelEditing
+                |> assertDescription "old"
+            )
+        , test "enter commits changes"
+            (model
+                |> update StartEditing
+                |> update (Editing "new")
+                |> update FinishEditing
+                |> assertDescription "new"
+            )
+        , test "empty string rollbacks changes"
+            (model
+                |> update StartEditing
+                |> update (Editing "")
+                |> update FinishEditing
+                |> assertDescription "old"
+            )
         ]
-
