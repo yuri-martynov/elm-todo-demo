@@ -4,7 +4,11 @@ import Events exposing (..)
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import Html.Lazy exposing (..)
 import ElmTest exposing (..)
+
+
+-- model
 
 
 type alias Model =
@@ -21,8 +25,12 @@ init text =
 type Msg
     = BeginEdit
     | Editing String
-    | EndEdit
-    | CancelEdit
+    | Commit
+    | Rollback
+
+
+
+-- update
 
 
 update msg model =
@@ -30,36 +38,55 @@ update msg model =
         BeginEdit ->
             { model | edits = Just model.text }
 
-        EndEdit ->
-            case model.edits of
-                Nothing ->
-                    model
+        Editing value ->
+            { model | edits = Just value }
 
+        Commit ->
+            case model.edits of
                 Just "" ->
                     model
 
                 Just s ->
                     { model | text = s, edits = Nothing }
 
-        Editing s ->
-            { model | edits = Just s }
+                _ ->
+                    Debug.crash ("can not commit value")
 
-        CancelEdit ->
+        Rollback ->
             { model | edits = Nothing }
 
 
-view model =
-    case model.edits of
-        Nothing ->
-            label [ onDoubleClick BeginEdit ] [ text model.text ]
 
-        Just s ->
+-- view
+
+
+view model =
+    let
+        viewReadOnly s =
+            label [ onDoubleClick BeginEdit ] [ text s ]
+
+        viewEditing s =
             input
                 [ value s
                 , onInput Editing
-                , onEnterOrEscape EndEdit CancelEdit
+                , onEnterOrEscape Commit Rollback
                 ]
                 []
+
+        viewEmptyEditing =
+            input [ onInput Editing ] []
+    in
+        case model.edits of
+            Nothing ->
+                lazy viewReadOnly model.text
+
+            Just "" ->
+                viewEmptyEditing
+
+            Just s ->
+                lazy viewEditing s
+
+-- tests
 
 
 tests =
@@ -70,25 +97,30 @@ tests =
         assert f expected model =
             assertEqual (f model) expected
     in
-        [ test "cancel rollbacks changes"
+        [ test "starts editing from current description"
+            (model
+                |> update BeginEdit
+                |> assert .edits (Just "old")
+            )
+        , test "rollbacks changes"
             (model
                 |> update BeginEdit
                 |> update (Editing "new")
-                |> update CancelEdit
+                |> update Rollback
                 |> assert .text "old"
             )
-        , test "enter commits changes"
+        , test "commits changes"
             (model
                 |> update BeginEdit
                 |> update (Editing "new")
-                |> update EndEdit
+                |> update Commit
                 |> assert .text "new"
             )
-        , test "empty string rollbacks changes"
+        , test "ignores empty edits"
             (model
                 |> update BeginEdit
                 |> update (Editing "")
-                |> update EndEdit
+                |> update Commit
                 |> assert .text "old"
             )
         ]
