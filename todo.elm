@@ -63,7 +63,7 @@ update' msg model =
 
 update : Msg -> Model -> ( Model, Cmd a )
 update msg model =
-    ( update' msg model, setStorage model )
+    ( update' msg model, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -77,16 +77,11 @@ view model =
         ]
 
 
-init savedModel =
-    ( savedModel ? emptyModel, Cmd.none )
-
-
-(?) maybe default =
-    Maybe.withDefault default maybe
-
+init =
+    (emptyModel, Cmd.none )
 
 main =
-    programWithFlags
+    program--WithFlags
         { init = init
         , update = update
         , view = view

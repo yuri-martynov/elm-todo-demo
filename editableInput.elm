@@ -17,11 +17,6 @@ type Model
     | Edit String Model
 
 
-init : String -> Model
-init text =
-    ReadOnly text
-
-
 type Msg
     = BeginEdit
     | Editor EditorMsg
@@ -35,6 +30,7 @@ type EditorMsg
 
 
 -- update
+
 
 update : Msg -> Model -> Model
 update msg model =
@@ -99,6 +95,11 @@ view model =
 -- model functions
 
 
+init : String -> Model
+init text =
+    ReadOnly text
+
+
 valueOf : Model -> String
 valueOf model =
     case model of
@@ -116,6 +117,7 @@ valueOf model =
 -- tests
 
 
+tests : List Test
 tests =
     let
         model =
