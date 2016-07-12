@@ -6,25 +6,29 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Html.Lazy exposing (..)
 import ElmTest exposing (..)
+import Html.App exposing (..)
 
 
 -- model
 
 
-type alias Model =
-    { text : String
-    , edits : Maybe String
-    }
+type Model
+    = ReadOnly String
+    | Edit String Model
 
 
 init : String -> Model
 init text =
-    { text = text, edits = Nothing }
+    ReadOnly text
 
 
 type Msg
     = BeginEdit
-    | Editing String
+    | Editor EditorMsg
+
+
+type EditorMsg
+    = Editing String
     | Commit
     | Rollback
 
@@ -34,26 +38,25 @@ type Msg
 
 
 update msg model =
-    case msg of
-        BeginEdit ->
-            { model | edits = Just model.text }
+    case model of
+        ReadOnly s ->
+            Edit s model
 
-        Editing value ->
-            { model | edits = Just value }
+        Edit s oldModel ->
+            case msg of
+                Editor msg ->
+                    case msg of
+                        Editing s ->
+                            Edit s oldModel
 
-        Commit ->
-            case model.edits of
-                Just "" ->
-                    model
+                        Commit ->
+                            ReadOnly s
 
-                Just s ->
-                    { model | text = s, edits = Nothing }
+                        Rollback ->
+                            oldModel
 
                 _ ->
-                    Debug.crash ("can not commit value")
-
-        Rollback ->
-            { model | edits = Nothing }
+                    Debug.crash ("invalid message: " ++ (msg |> toString))
 
 
 
@@ -74,17 +77,23 @@ view model =
                 []
 
         viewEmptyEditing =
-            input [ onInput Editing ] []
+            input
+                [ onInput Editing
+                , onEscape Rollback
+                ]
+                []
     in
-        case model.edits of
-            Nothing ->
-                lazy viewReadOnly model.text
+        case model of
+            ReadOnly s ->
+                lazy viewReadOnly s
 
-            Just "" ->
-                viewEmptyEditing
+            Edit "" _ ->
+                map Editor viewEmptyEditing
 
-            Just s ->
-                lazy viewEditing s
+            Edit s _ ->
+                map Editor (lazy viewEditing s)
+
+
 
 -- tests
 
@@ -92,35 +101,25 @@ view model =
 tests =
     let
         model =
-            { text = "old", edits = Nothing, isDone = False }
-
-        assert f expected model =
-            assertEqual (f model) expected
+            ReadOnly "old"
     in
         [ test "starts editing from current description"
             (model
                 |> update BeginEdit
-                |> assert .edits (Just "old")
+                |> assertEqual (Edit "old" model)
             )
         , test "rollbacks changes"
             (model
                 |> update BeginEdit
-                |> update (Editing "new")
-                |> update Rollback
-                |> assert .text "old"
+                |> update (Editor (Editing "new"))
+                |> update (Editor Rollback)
+                |> assertEqual model
             )
         , test "commits changes"
             (model
                 |> update BeginEdit
-                |> update (Editing "new")
-                |> update Commit
-                |> assert .text "new"
-            )
-        , test "ignores empty edits"
-            (model
-                |> update BeginEdit
-                |> update (Editing "")
-                |> update Commit
-                |> assert .text "old"
+                |> update (Editor (Editing "new"))
+                |> update (Editor Commit)
+                |> assertEqual (ReadOnly "new")
             )
         ]

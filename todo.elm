@@ -1,4 +1,5 @@
-port module Todo exposing (main, tests)
+-- port
+module Todo exposing (main, tests)
 
 import Search
 import TodoEntry
@@ -12,7 +13,7 @@ import Html.Lazy exposing (..)
 
 import ElmTest exposing (..)
 
-port setStorage : Model -> Cmd msg
+-- port setStorage : Model -> Cmd msg
 
 
 type alias Model =
