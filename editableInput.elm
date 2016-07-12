@@ -1,4 +1,4 @@
-module EditableInput exposing (Model, Msg, update, view, init, tests)
+module EditableInput exposing (Model, Msg, update, view, init, valueOf, tests)
 
 import Events exposing (..)
 import Html exposing (..)
@@ -36,7 +36,7 @@ type EditorMsg
 
 -- update
 
-
+update : Msg -> Model -> Model
 update msg model =
     case model of
         ReadOnly s ->
@@ -63,6 +63,7 @@ update msg model =
 -- view
 
 
+view : Model -> Html Msg
 view model =
     let
         viewReadOnly s =
@@ -92,6 +93,23 @@ view model =
 
             Edit s _ ->
                 map Editor (lazy viewEditing s)
+
+
+
+-- model functions
+
+
+valueOf : Model -> String
+valueOf model =
+    case model of
+        ReadOnly s ->
+            s
+
+        Edit _ (ReadOnly s) ->
+            s
+
+        _ ->
+            Debug.crash "Invalid model"
 
 
 
