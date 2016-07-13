@@ -1,4 +1,4 @@
-module TodoList exposing (Model, Msg, view, update, initItem)
+module TodoList exposing (Model, Msg, view, update, initItem, hasDone)
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -47,6 +47,7 @@ view items filter =
         ul [] tasksView
 
 
+update: Msg -> Model -> Model
 update msg items =
     let
         updateTask id msg t =
@@ -66,3 +67,11 @@ update msg items =
 initItem : Int -> String -> TodoItemWithId
 initItem id description =
     { id = id, model = TodoItem.init description }
+
+
+-- public
+
+hasDone: Model -> Bool
+hasDone tasks =
+    tasks |> List.any (.model >> .isDone)
+

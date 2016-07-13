@@ -1,11 +1,11 @@
 -- port
 module Todo exposing (main, tests)
 
-import Search
 import TodoEntry
 import Summary
 import Controls
 import TodoList
+import Filter
 import Html exposing (..)
 import Html.App exposing (..)
 import Html.Attributes exposing (..)
@@ -19,9 +19,8 @@ import ElmTest exposing (..)
 type alias Model =
     { nextId : Int
     , newTask : TodoEntry.Model
-    , search : Search.Model
-    , hideDone : Bool
     , tasks : TodoList.Model
+    , filter : Filter.Model
     }
 
 
@@ -30,15 +29,14 @@ emptyModel =
     { nextId = 1
     , newTask = ""
     , tasks = []
-    , search = ""
-    , hideDone = False
+    , filter = Filter.init
     }
 
 
 type Msg
     = TodoList TodoList.Msg
     | TodoEntry TodoEntry.Msg
-    | Search Search.Msg
+    | Filter Filter.Msg
     | Controls Controls.Msg
 
 
@@ -51,8 +49,8 @@ update' msg model =
         TodoList msg ->
             { model | tasks = model.tasks |> TodoList.update msg }
 
-        Search msg ->
-            { model | search = model.search |> Search.update msg }
+        Filter msg ->
+            { model | filter = model.filter |> Filter.update msg }
 
         TodoEntry TodoEntry.Enter ->
             model |> add |> (todoEntry TodoEntry.Enter)
@@ -70,9 +68,9 @@ view : Model -> Html Msg
 view model =
     div []
         [ map TodoEntry (lazy TodoEntry.view model.newTask)
-        , map Search (lazy Search.view model.search)
+        , map Filter (lazy2 Filter.view model.filter (TodoList.hasDone model.tasks))
         , map Controls (lazy Controls.view model)
-        , map TodoList (lazy2 TodoList.view model.tasks (Controls.filter model.search model.hideDone))
+        , map TodoList (lazy2 TodoList.view model.tasks (Filter.filter model.filter ))
         , lazy Summary.view model.tasks
         ]
 

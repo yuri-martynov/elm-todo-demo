@@ -1,11 +1,10 @@
-module TodoItem exposing (Model, Msg, update, view, init)
+module TodoItem exposing (Model, Msg, update, view, init, descriptionOf)
 
 import EditableInput
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Html.App exposing (map)
-import Html.Lazy exposing (lazy)
 
 
 type alias Model =
@@ -40,10 +39,15 @@ view model =
     in
         span []
             [ doneView
-            , map Description (lazy EditableInput.view model.description)
+            , map Description (EditableInput.view model.description)
             ]
 
 
 init : String -> Model
 init description =
     { description = EditableInput.init description, isDone = False }
+
+
+descriptionOf : Model -> String
+descriptionOf model =
+    model.description |> EditableInput.valueOf

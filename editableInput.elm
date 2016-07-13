@@ -14,7 +14,7 @@ import Html.App exposing (..)
 
 type Model
     = ReadOnly String
-    | Edit String Model
+    | Edit String String
 
 
 type Msg
@@ -36,20 +36,20 @@ update : Msg -> Model -> Model
 update msg model =
     case model of
         ReadOnly s ->
-            Edit s model
+            Edit s s
 
-        Edit s oldModel ->
+        Edit s old ->
             case msg of
                 Editor msg ->
                     case msg of
                         Editing s ->
-                            Edit s oldModel
+                            Edit s old
 
                         Commit ->
                             ReadOnly s
 
                         Rollback ->
-                            oldModel
+                            ReadOnly old
 
                 _ ->
                     Debug.crash ("invalid message: " ++ (msg |> toString))
@@ -106,13 +106,8 @@ valueOf model =
         ReadOnly s ->
             s
 
-        Edit _ (ReadOnly s) ->
-            s
-
-        _ ->
-            Debug.crash "Invalid model"
-
-
+        Edit _ old ->
+            old
 
 -- tests
 
@@ -126,7 +121,7 @@ tests =
         [ test "starts editing from current description"
             (model
                 |> update BeginEdit
-                |> assertEqual (Edit "old" model)
+                |> assertEqual (Edit "old" "old")
             )
         , test "rollbacks changes"
             (model
