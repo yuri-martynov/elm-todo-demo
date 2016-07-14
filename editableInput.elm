@@ -118,7 +118,7 @@ tests =
         model =
             ReadOnly "old"
     in
-        [ test "starts editing from current description"
+        [ test "starts editing from current value"
             (model
                 |> update BeginEdit
                 |> assertEqual (Edit "old" "old")
